@@ -33,7 +33,7 @@ open class HttpData<T> {
      * 是否请求成功
      */
     fun isRequestSucceed(): Boolean {
-        return code == 200
+        return code == 200 || code == 0
     }
 
     /**
