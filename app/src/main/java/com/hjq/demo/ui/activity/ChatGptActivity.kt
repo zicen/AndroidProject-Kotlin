@@ -9,14 +9,15 @@ import com.blankj.utilcode.util.ToastUtils
 import com.hjq.demo.R
 import com.hjq.demo.app.AppActivity
 import com.hjq.demo.http.api.BaiXingChatGptApi
+import com.hjq.demo.http.api.OpenAiApi
 import com.hjq.demo.http.model.HttpData
 import com.hjq.demo.ui.adapter.ChatGptItemAdapter
 import com.hjq.http.EasyHttp
+import com.hjq.http.body.StringBody
 import com.hjq.http.listener.HttpCallback
 import com.hjq.shape.layout.ShapeRecyclerView
 import com.hjq.shape.view.ShapeEditText
 import okhttp3.Call
-import java.lang.Exception
 
 class ChatGptActivity : AppActivity(), com.hjq.base.BaseAdapter.OnItemLongClickListener {
 
@@ -50,6 +51,46 @@ class ChatGptActivity : AppActivity(), com.hjq.base.BaseAdapter.OnItemLongClickL
         etMessage?.setText("")
         chatAdapter.addItem(BaiXingChatGptApi.Bean(content = text))
         chatAdapter.addItem(BaiXingChatGptApi.Bean(role = 1, content = "思考中..."))
+        requestOpenAi(text)
+//      requestBaiXing(text)
+    }
+
+    private fun requestOpenAi(text: String) {
+        EasyHttp.post(this)
+            .api(OpenAiApi().apply { })
+            .body(
+                StringBody(
+                    "{\n" +
+                            "  \"model\": \"gpt-3.5-turbo\",\n" +
+                            "  \"messages\": [{\"role\": \"user\", \"content\": $text\"\"}],\n" +
+                            "  \"temperature\": 0.7\n" +
+                            "}"
+                )
+            )
+            .request(object : HttpCallback<HttpData<String?>>(this) {
+                override fun onStart(call: Call?) {
+                    isThinking = true
+                }
+
+                override fun onEnd(call: Call?) {
+                    isThinking = false
+                }
+
+                override fun onSucceed(data: HttpData<String?>) {
+                    data.getData()?.let {
+                        updateChatGptReplyMessage(it)
+                    }
+                }
+
+                override fun onFail(e: Exception?) {
+                    e?.message?.let {
+                        updateChatGptReplyMessage(it)
+                    }
+                }
+            })
+    }
+
+    private fun requestBaiXing(text: String) {
         EasyHttp.get(this)
             .api(BaiXingChatGptApi().apply { setQuestion(text) })
             .request(object : HttpCallback<HttpData<String?>>(this) {
